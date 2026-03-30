@@ -1,0 +1,36 @@
+<script>
+async function connectController() {
+  try {
+    const devices = await navigator.hid.requestDevice({
+      filters: []
+    });
+
+    if (devices.length === 0) {
+      log("Cihaz seçilmedi");
+      return;
+    }
+
+    const device = devices[0];
+    await device.open();
+
+    log("Bağlandı: " + device.productName);
+
+    // TÜM RAPORLARI DİNLE
+    device.addEventListener("inputreport", event => {
+      const { data, reportId } = event;
+
+      const arr = new Uint8Array(data.buffer);
+
+      log("ReportID: " + reportId + " Veri: " + arr.join(","));
+    });
+
+  } catch (err) {
+    log("Hata: " + err);
+  }
+}
+
+function log(text) {
+  document.getElementById("log").innerText = text;
+  console.log(text);
+}
+</script>
