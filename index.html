@@ -1,3 +1,52 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Pskoltamir - Kol Test</title>
+
+<style>
+  body {
+    margin: 0;
+    font-family: Arial;
+    color: white;
+    text-align: center;
+    background: url('https://images.unsplash.com/photo-1606813907291-d86efa9b94db') no-repeat center center/cover;
+  }
+
+  .overlay {
+    background: rgba(0,0,0,0.7);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  button {
+    padding: 15px 25px;
+    font-size: 18px;
+    margin-top: 20px;
+    cursor: pointer;
+  }
+
+  #log {
+    margin-top: 20px;
+    background: black;
+    padding: 15px;
+    border-radius: 10px;
+    width: 300px;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="overlay">
+  <h1>🎮 Kol Test Sistemi</h1>
+  <button onclick="connectController()">Bağlan</button>
+  <div id="log">Bekleniyor...</div>
+</div>
+
 <script>
 async function connectController() {
   try {
@@ -15,12 +64,9 @@ async function connectController() {
 
     log("Bağlandı: " + device.productName);
 
-    // TÜM RAPORLARI DİNLE
     device.addEventListener("inputreport", event => {
       const { data, reportId } = event;
-
       const arr = new Uint8Array(data.buffer);
-
       log("ReportID: " + reportId + " Veri: " + arr.join(","));
     });
 
@@ -34,3 +80,6 @@ function log(text) {
   console.log(text);
 }
 </script>
+
+</body>
+</html>
