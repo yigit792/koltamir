@@ -2,117 +2,160 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>Pskoltamir - Kol Test Paneli</title>
+<title>Pskoltamir PRO Test</title>
+
 <style>
-  body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    color: white;
-    text-align: center;
-    background: url('https://images.unsplash.com/photo-1606813907291-d86efa9b94db') no-repeat center center/cover;
-    background-size: cover;
-  }
-  .overlay {
-    background: rgba(0,0,0,0.8);
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-    padding-top: 30px;
-  }
-  h1 { margin-bottom: 10px; }
-  button { padding: 12px 25px; font-size: 16px; margin: 10px; cursor: pointer; border-radius: 5px; }
-  #log { margin-top: 15px; background: black; padding: 10px; border-radius: 8px; width: 350px; height: 30px; }
-  #buttons { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 15px; }
-  .btn { width: 50px; height: 50px; margin: 5px; border-radius: 5px; line-height: 50px; background: grey; color: white; font-weight: bold; }
-  #ariza { margin-top: 20px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 10px; width: 400px; text-align: left; }
-  #ariza label { display: block; margin: 5px 0; }
-  #fiyat { margin-top: 15px; font-size: 18px; font-weight: bold; }
+body {
+  margin:0;
+  font-family:Arial;
+  background:#0f172a;
+  color:white;
+  text-align:center;
+}
+
+.container {
+  padding:20px;
+}
+
+button {
+  padding:15px 30px;
+  font-size:18px;
+  margin:15px;
+  cursor:pointer;
+}
+
+#controller {
+  position:relative;
+  width:500px;
+  margin:30px auto;
+}
+
+.btn {
+  position:absolute;
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  background:grey;
+  line-height:40px;
+  font-weight:bold;
+}
+
+/* Tuş konumları */
+#cross { top:180px; left:320px; }
+#circle { top:140px; left:360px; }
+#triangle { top:100px; left:320px; }
+#square { top:140px; left:280px; }
+
+/* Analoglar */
+.stick {
+  position:absolute;
+  width:80px;
+  height:80px;
+  border:2px solid white;
+  border-radius:50%;
+}
+
+#leftStick { top:200px; left:100px; }
+#rightStick { top:200px; left:250px; }
+
+.stick-inner {
+  width:20px;
+  height:20px;
+  background:#00ffcc;
+  border-radius:50%;
+  position:absolute;
+  top:30px;
+  left:30px;
+}
+
+#serial {
+  margin-top:20px;
+  font-size:18px;
+}
 </style>
+
 </head>
+
 <body>
 
-<div class="overlay">
-  <h1>🎮 Kol Test Paneli</h1>
-  <button onclick="connectController()">Kol Bağlan</button>
-  <div id="log">Bekleniyor...</div>
+<div class="container">
+  <h1>🎮 PRO Kol Test</h1>
+  <button onclick="connect()">Kolu Bağla</button>
 
-  <div id="buttons">
-    <div class="btn" id="btnX">X</div>
-    <div class="btn" id="btnO">O</div>
-    <div class="btn" id="btnTriangle">△</div>
-    <div class="btn" id="btnSquare">▢</div>
-    <div class="btn" id="btnL1">L1</div>
-    <div class="btn" id="btnR1">R1</div>
-    <div class="btn" id="btnL2">L2</div>
-    <div class="btn" id="btnR2">R2</div>
-  </div>
+  <div id="serial">Seri: -</div>
 
-  <div id="ariza">
-    <h3>Arıza Seçenekleri:</h3>
-    <label><input type="checkbox" id="drift"> Analog Drift</label>
-    <label><input type="checkbox" id="basmiyor"> Tuş Basmıyor</label>
-    <label><input type="checkbox" id="titreşim"> Titreşim Sorunu</label>
-    <label><input type="checkbox" id="digerd"> Diğer</label>
-    <button onclick="hesaplaFiyat()">İleri → Fiyat Hesapla</button>
-    <div id="fiyat"></div>
+  <div id="controller">
+
+    <!-- Tuşlar -->
+    <div class="btn" id="cross">X</div>
+    <div class="btn" id="circle">O</div>
+    <div class="btn" id="triangle">△</div>
+    <div class="btn" id="square">▢</div>
+
+    <!-- Analog -->
+    <div class="stick" id="leftStick">
+      <div class="stick-inner" id="ls"></div>
+    </div>
+
+    <div class="stick" id="rightStick">
+      <div class="stick-inner" id="rs"></div>
+    </div>
+
   </div>
 </div>
 
 <script>
-let controller;
-let buttons = {
-  btnX: false, btnO: false, btnTriangle: false, btnSquare: false,
-  btnL1: false, btnR1: false, btnL2: false, btnR2: false
-};
 
-async function connectController() {
-  try {
-    const devices = await navigator.hid.requestDevice({ filters: [] });
-    if (devices.length === 0) { log("Cihaz seçilmedi"); return; }
-    controller = devices[0];
-    await controller.open();
-    log("Bağlandı: " + controller.productName);
+let device;
 
-    controller.addEventListener("inputreport", event => {
-      const { data } = event;
-      const arr = new Uint8Array(data.buffer);
-      log("ReportID: " + event.reportId + " Veri: " + arr.join(","));
-      updateButtons(arr);
-    });
+async function connect() {
+  const devices = await navigator.hid.requestDevice({filters:[]});
+  if (!devices.length) return;
 
-  } catch(err) { log("Hata: " + err); }
+  device = devices[0];
+  await device.open();
+
+  document.getElementById("serial").innerText =
+    "Seri: " + (device.serialNumber || "Bilinmiyor");
+
+  device.addEventListener("inputreport", handleInput);
 }
 
-function log(text) { document.getElementById("log").innerText = text; console.log(text); }
+function handleInput(e) {
+  const data = new Uint8Array(e.data.buffer);
 
-function updateButtons(arr) {
-  // Basit örnek: X tuşu arr[0] bit 0, O tuşu arr[0] bit1 vs.
-  // Burayı kolla uyumlu şekilde düzenleyebilirsin
-  buttons.btnX = arr[0] & 1 ? true : false;
-  buttons.btnO = arr[0] & 2 ? true : false;
-  buttons.btnTriangle = arr[0] & 4 ? true : false;
-  buttons.btnSquare = arr[0] & 8 ? true : false;
-  buttons.btnL1 = arr[1] & 1 ? true : false;
-  buttons.btnR1 = arr[1] & 2 ? true : false;
-  buttons.btnL2 = arr[1] & 4 ? true : false;
-  buttons.btnR2 = arr[1] & 8 ? true : false;
+  // 🎮 TUŞLAR (örnek mapping - değişebilir)
+  setBtn("cross", data[0] & 1);
+  setBtn("circle", data[0] & 2);
+  setBtn("triangle", data[0] & 4);
+  setBtn("square", data[0] & 8);
 
-  for (let id in buttons) {
-    document.getElementById(id).style.background = buttons[id] ? "green" : "grey";
-  }
+  // 🎮 ANALOG (örnek)
+  let lx = data[1];
+  let ly = data[2];
+
+  let rx = data[3];
+  let ry = data[4];
+
+  moveStick("ls", lx, ly);
+  moveStick("rs", rx, ry);
 }
 
-function hesaplaFiyat() {
-  let fiyat = 50; // baz fiyat
-  if(document.getElementById("drift").checked) fiyat += 30;
-  if(document.getElementById("basmiyor").checked) fiyat += 40;
-  if(document.getElementById("titreşim").checked) fiyat += 20;
-  if(document.getElementById("digerd").checked) fiyat += 10;
-
-  document.getElementById("fiyat").innerText = "Tahmini Fiyat: " + fiyat + " TL";
+function setBtn(id, active) {
+  document.getElementById(id).style.background =
+    active ? "#00ff00" : "grey";
 }
+
+function moveStick(id, x, y) {
+  const el = document.getElementById(id);
+
+  let nx = (x - 128) / 2;
+  let ny = (y - 128) / 2;
+
+  el.style.left = (30 + nx) + "px";
+  el.style.top = (30 + ny) + "px";
+}
+
 </script>
 
 </body>
